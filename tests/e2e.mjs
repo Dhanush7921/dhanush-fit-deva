@@ -58,20 +58,16 @@ page.on('pageerror', (e) => errors.push(String(e)));
 try {
   // 1. Intro
   await page.goto(BASE + '?perf=1');
-  await page.waitForTimeout(2600);
+  const atT = (v) => page.waitForFunction((x) => (window.__introT || 0) >= x, v, { timeout: 90000, polling: 50 });
+  await page.waitForTimeout(1500);
   ok('WebGL world boots (no fallback)', !(await page.evaluate(() => document.body.classList.contains('no-webgl'))));
-  ok('Intro is shown with DHANUSH', await page.locator('.intro h1[aria-label="DHANUSH"]').count() === 1);
-  await page.screenshot({ path: `${SHOTS}/01-intro-dhanush.png` });
-  await page.waitForTimeout(2300);
-  await page.screenshot({ path: `${SHOTS}/02-intro-transform.png` });
-  await page.waitForTimeout(2600);
-  await page.screenshot({ path: `${SHOTS}/03-intro-deva.png` });
-  await page.waitForTimeout(1600);
-  await page.screenshot({ path: `${SHOTS}/04-intro-flight.png` });
-  await page.waitForSelector('.intro', { state: 'detached', timeout: 30000 });
+  await atT(1.5);
+  ok('Poster intro layers loaded', await page.locator('.intro canvas[data-ready="1"]').count() === 1);
+  for (const [t, n] of [[1.8, '01-dark'], [3.0, '02-symbol'], [4.6, '03-dhanush'], [5.35, '04-impact'], [7.9, '05-final'], [10.6, '06-handoff']]) { await atT(t); await page.screenshot({ path: `${SHOTS}/intro-${n}.png` }); }
+  await page.waitForSelector('.intro', { state: 'detached', timeout: 60000 });
   ok('Intro completes and hands off to home', await page.locator('.hero-title').isVisible());
   await page.waitForTimeout(1200);
-  await page.screenshot({ path: `${SHOTS}/05-home-hero.png` });
+  await page.screenshot({ path: `${SHOTS}/07-home-hero.png` });
   // sound is muted by default
   ok('Sound muted by default', (await page.getAttribute('.top-actions button[aria-label*="Sound"]', 'aria-pressed')) === 'false');
 

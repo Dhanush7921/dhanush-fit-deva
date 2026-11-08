@@ -22,7 +22,7 @@ export function homeController(getProgress: () => number) {
     const roll = HOME_ROLL[i] + (HOME_ROLL[i + 1] - HOME_ROLL[i]) * f;
     const bob = e.reduced ? 0 : Math.sin(time * 0.6) * 0.08;
     e.setShot([p[0], p[1] + bob, p[2]], t, roll, 1.7);
-    e.setLook({ fade: 1, dim: Math.min(0.35, s * 0.6), emblem: s < 0.45 ? 1 : 0, smoke: 1, accent: 1, burst: 0, flash: 0, shake: 0 });
+    e.setLook({ fade: 1, dim: Math.min(0.35, s * 0.6), emblem: 0, smoke: 1, accent: 1, burst: 0, flash: 0, shake: 0 });
   };
 }
 

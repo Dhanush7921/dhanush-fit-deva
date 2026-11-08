@@ -2,23 +2,7 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react
 import { addDays } from '../store/dates';
 
 export function Logo({ size = 32, title = 'DEVA' }: { size?: number; title?: string }) {
-  return (
-    <svg width={size * 0.875} height={size} viewBox="0 0 140 160" role="img" aria-label={title} className="logo-mark">
-      <defs>
-        <linearGradient id="lgS" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f6f4f1" /><stop offset=".22" stopColor="#9a9592" /><stop offset=".45" stopColor="#2b2828" />
-          <stop offset=".62" stopColor="#d9d4cf" /><stop offset=".8" stopColor="#5d5857" /><stop offset="1" stopColor="#1c1a1a" />
-        </linearGradient>
-        <linearGradient id="lgB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#7a0a12" /><stop offset="1" stopColor="#ff4a4a" /></linearGradient>
-      </defs>
-      <path d="M38 8 C 138 10 138 150 38 152 L 38 138 C 116 134 116 26 38 22 Z" fill="url(#lgS)" />
-      <rect x="110" y="68" width="9" height="24" rx="2" fill="#141212" stroke="url(#lgS)" strokeWidth="1.5" />
-      <rect x="34" y="8" width="8" height="144" rx="2" fill="url(#lgS)" />
-      <rect x="10" y="78" width="112" height="4" fill="url(#lgS)" />
-      <path d="M122 72 L 138 80 L 122 88 L 125 80 Z" fill="url(#lgB)" />
-      <path d="M10 80 L 2 72 L 16 72 L 22 78 Z M10 80 L 2 88 L 16 88 L 22 82 Z" fill="url(#lgB)" />
-    </svg>
-  );
+  return <img src="./intro/mark-96.webp" height={size} width={Math.round(size * 1.46)} alt={title} className="logo-mark" decoding="async" />;
 }
 
 const P = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };

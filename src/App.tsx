@@ -15,6 +15,8 @@ const Training = lazy(() => import('./pages/Training'));
 const Challenge = lazy(() => import('./pages/Challenge'));
 const Progress = lazy(() => import('./pages/Progress'));
 const Settings = lazy(() => import('./pages/Settings'));
+/** Warm the dashboard chunks while the intro plays, so the hand-off is instant. */
+const preloadPages = () => { void import('./pages/Dashboard'); void import('./pages/Fuel'); void import('./pages/Training'); void import('./pages/Challenge'); void import('./pages/Progress'); };
 const PAGES: Record<Exclude<Route, 'home'>, LazyExoticComponent<ComponentType>> = { dashboard: Dashboard, fuel: Fuel, training: Training, challenge: Challenge, progress: Progress, settings: Settings };
 
 export default function App() {
@@ -36,14 +38,14 @@ export default function App() {
   useEffect(() => {
     const e = getEngine();
     e.start();
-    if (!intro && route === 'home') e.setLook({ fade: 1, emblem: 1, accent: 1, smoke: 1 });
+    if (!intro && route === 'home') e.setLook({ fade: 1, emblem: 0, accent: 1, smoke: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const Page = route === 'home' ? null : PAGES[route];
   return (
     <>
-      {intro && <Intro onDone={done} />}
+      {intro && <Intro onDone={done} onPreload={preloadPages} />}
       <div className={`shell ${intro ? 'behind' : 'live'}`} aria-hidden={intro}>
         <Nav route={route} onReplay={() => { navigate('home'); window.scrollTo(0, 0); setIntro(true); }} />
         <main id="main" key={route} className={`view view-${route}`}>

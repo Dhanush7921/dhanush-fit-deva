@@ -33,6 +33,7 @@ export default function Home({ active }: { active: boolean }) {
   return (
     <div className="home" ref={root}>
       <section className="hero">
+        <img className="hero-emblem" src="./intro/emblem.webp" alt="" aria-hidden="true" decoding="async" />
         <p className="kicker reveal in">{fmt(st.challengeStart, { day: '2-digit', month: 'short' })} — {fmt(st.challengeEnd, { day: '2-digit', month: 'short', year: 'numeric' })}</p>
         <h1 className="hero-title metal">DEVA</h1>
         <p className="hero-sub"><span className="crimson-rule" />The Transformation<span className="crimson-rule" /></p>

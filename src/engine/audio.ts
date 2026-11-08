@@ -79,6 +79,17 @@ class SoundEngine {
     n.connect(bp).connect(g).connect(this.master!); n.start(t); n.stop(t + dur + 0.05);
   }
 
+  heartbeat() {
+    const ctx = this.live(); if (!ctx) return;
+    const t = ctx.currentTime;
+    for (const [dt, f, v] of [[0, 62, 0.9], [0.17, 52, 0.6]] as const) {
+      const o = ctx.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(f * 1.6, t + dt); o.frequency.exponentialRampToValueAtTime(f, t + dt + 0.08);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t + dt); g.gain.exponentialRampToValueAtTime(v, t + dt + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.22);
+      o.connect(g).connect(this.master!); o.start(t + dt); o.stop(t + dt + 0.25);
+    }
+  }
+
   riser(dur = 0.9) {
     const ctx = this.live(); if (!ctx) return;
     const t = ctx.currentTime;
