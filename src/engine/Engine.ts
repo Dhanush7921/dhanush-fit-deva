@@ -3,7 +3,7 @@ import { V3, basis, viewProj, lerp, lerp3, add, mul } from './math';
 
 export type Tier = 'high' | 'mid' | 'low';
 const TIERS: Record<Tier, { maxScale: number; dprCap: number; steps: number; particles: number }> = {
-  high: { maxScale: 1, dprCap: 1.5, steps: 90, particles: 2400 },
+  high: { maxScale: 1, dprCap: 1.25, steps: 80, particles: 2200 },
   mid: { maxScale: 0.8, dprCap: 1.25, steps: 68, particles: 1300 },
   low: { maxScale: 0.6, dprCap: 1, steps: 46, particles: 500 },
 };
@@ -136,14 +136,17 @@ export class Engine {
 
   private adapt(dt: number) {
     this.acc += dt; this.frames++;
-    if (this.acc < 1.5) return;
+    if (this.acc < 1) return;
     const ms = (this.acc / this.frames) * 1000;
     this.fps = 1000 / ms;
-    const min = this.cfg.maxScale * 0.45;
-    if (ms > 19.5 && this.scale > min) this.scale = Math.max(min, this.scale * 0.85);
-    else if (ms > 24 && this.steps > 36) this.steps -= 8;
-    else if (ms < 14 && this.scale < this.cfg.maxScale) this.scale = Math.min(this.cfg.maxScale, this.scale * 1.06);
-    else if (ms < 14 && this.steps < this.cfg.steps) this.steps += 4;
+    const min = this.cfg.maxScale * 0.4;
+    if (ms > 18) {
+      if (this.scale > min) this.scale = Math.max(min, this.scale * (ms > 28 ? 0.72 : 0.84));
+      if ((ms > 28 || this.scale <= min) && this.steps > 36) this.steps -= 8;
+    } else if (ms < 13.5) {
+      if (this.steps < this.cfg.steps) this.steps += 4;
+      else if (this.scale < this.cfg.maxScale) this.scale = Math.min(this.cfg.maxScale, this.scale * 1.05);
+    }
     this.acc = 0; this.frames = 0;
   }
 
