@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 200" role="img" aria-labelledby="t">
+  <title id="t">DHANUSH → DEVA — The Transformation</title>
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f4f1"/><stop offset=".22" stop-color="#9a9592"/><stop offset=".45" stop-color="#2b2828"/>
+      <stop offset=".62" stop-color="#d9d4cf"/><stop offset=".8" stop-color="#5d5857"/><stop offset="1" stop-color="#1c1a1a"/>
+    </linearGradient>
+    <linearGradient id="type" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".48" stop-color="#bdb7b2"/><stop offset=".52" stop-color="#4a4646"/><stop offset="1" stop-color="#cfc9c4"/>
+    </linearGradient>
+    <linearGradient id="blood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a0a12"/><stop offset="1" stop-color="#ff3b3f"/></linearGradient>
+  </defs>
+  <rect width="880" height="200" fill="#0b0a0a"/>
+  <g transform="translate(24 20) scale(1)">
+    <path d="M38 8 C 138 10 138 150 38 152 L 38 138 C 116 134 116 26 38 22 Z" fill="url(#steel)"/>
+    <rect x="34" y="8" width="8" height="144" rx="2" fill="url(#steel)"/>
+    <rect x="10" y="78" width="112" height="4" fill="url(#steel)"/>
+    <path d="M122 72 L 138 80 L 122 88 L 125 80 Z" fill="url(#blood)"/>
+  </g>
+  <g font-family="Anton, 'Bebas Neue', Impact, 'Arial Narrow', sans-serif" fill="url(#type)">
+    <text x="196" y="112" font-size="78" letter-spacing="6">DHANUSH</text>
+    <text x="580" y="112" font-size="78" letter-spacing="6">DEVA</text>
+  </g>
+  <path d="M500 86 h44 l-12 -10 M544 86 l-12 10" stroke="url(#blood)" stroke-width="5" fill="none" stroke-linecap="square"/>
+  <text x="198" y="158" font-family="Manrope, Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="13" fill="#c1121f">THE TRANSFORMATION</text>
+</svg>

@@ -1,0 +1,23 @@
+{
+  "name": "dhanush-fit-deva",
+  "private": true,
+  "version": "1.0.0",
+  "description": "DHANUSH → DEVA — THE TRANSFORMATION. A cinematic WebGL fitness tracker backed by Google Sheets.",
+  "type": "module",
+  "scripts": {
+    "dev": "node build.mjs --serve",
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node tests/e2e.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.0"
+  }
+}

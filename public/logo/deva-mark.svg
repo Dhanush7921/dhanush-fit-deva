@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 160" role="img" aria-labelledby="t">
+  <title id="t">DEVA mark — the bow D</title>
+  <!-- Original mark: "Dhanush" means bow. The bowstring is the stem of the D, the drawn bow is its curve, the arrow is the transformation. -->
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f4f1"/>
+      <stop offset=".22" stop-color="#9a9592"/>
+      <stop offset=".45" stop-color="#2b2828"/>
+      <stop offset=".62" stop-color="#d9d4cf"/>
+      <stop offset=".8" stop-color="#5d5857"/>
+      <stop offset="1" stop-color="#1c1a1a"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".9"/>
+      <stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="blood" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7a0a12"/>
+      <stop offset=".6" stop-color="#e01b2b"/>
+      <stop offset="1" stop-color="#ff5a52"/>
+    </linearGradient>
+  </defs>
+  <!-- bow (the curve of the D) -->
+  <path d="M38 8 C 138 10 138 150 38 152 L 38 138 C 116 134 116 26 38 22 Z" fill="url(#steel)"/>
+  <path d="M38 8 C 138 10 138 150 38 152 L 38 146 C 128 142 128 18 38 14 Z" fill="url(#edge)" opacity=".35"/>
+  <!-- grip -->
+  <rect x="110" y="68" width="9" height="24" rx="2" fill="#141212" stroke="url(#steel)" stroke-width="1.5"/>
+  <!-- bowstring = stem of the D -->
+  <rect x="34" y="8" width="8" height="144" rx="2" fill="url(#steel)"/>
+  <!-- arrow -->
+  <rect x="10" y="78" width="112" height="4" fill="url(#steel)"/>
+  <path d="M122 72 L 138 80 L 122 88 L 125 80 Z" fill="url(#blood)"/>
+  <path d="M10 80 L 2 72 L 16 72 L 22 78 Z M10 80 L 2 88 L 16 88 L 22 82 Z" fill="url(#blood)"/>
+</svg>
