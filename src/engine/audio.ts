@@ -8,6 +8,14 @@ class SoundEngine {
   private master?: GainNode;
   private noise?: AudioBuffer;
   private subs = new Set<Fn>();
+  private droneGain?: GainNode;
+  private musicData?: Promise<ArrayBuffer | null>;
+  private musicBuf?: AudioBuffer;
+  private musicSrc?: AudioBufferSourceNode;
+  private musicGain?: GainNode;
+  private musicStart = 0;
+  /** True while the intro score owns the soundstage (procedural drone is ducked). */
+  musicActive = false;
 
   subscribe = (f: Fn) => { this.subs.add(f); return () => { this.subs.delete(f); }; };
   getMuted = () => this.muted;
@@ -30,15 +38,16 @@ class SoundEngine {
   private drone() {
     const ctx = this.ctx!, out = this.master!;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 170;
+    const dg = (this.droneGain = ctx.createGain()); dg.gain.value = this.musicActive ? 0 : 1; dg.connect(out);
     const g = ctx.createGain(); g.gain.value = 0.16;
     for (const f of [55, 55.35, 82.4]) { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(lp); o.start(); }
-    lp.connect(g).connect(out);
+    lp.connect(g).connect(dg);
     const n = ctx.createBufferSource(); n.buffer = this.noise!; n.loop = true;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 0.6;
     const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
     const lg = ctx.createGain(); lg.gain.value = 220; lfo.connect(lg).connect(bp.frequency); lfo.start();
     const ng = ctx.createGain(); ng.gain.value = 0.05;
-    n.connect(bp).connect(ng).connect(out); n.start();
+    n.connect(bp).connect(ng).connect(dg); n.start();
   }
 
   setMuted(m: boolean) {
@@ -52,6 +61,59 @@ class SoundEngine {
     this.subs.forEach((f) => f());
   }
   toggle = () => this.setMuted(!this.muted);
+
+  // ---- intro score: one decoded buffer, its playback clock drives the animation -----------------
+  /** Start fetching the score early (no AudioContext needed, so it works while muted). */
+  prefetchMusic(base: string) {
+    if (this.musicData) return;
+    const opus = typeof Audio !== 'undefined' && new Audio().canPlayType('audio/webm; codecs="opus"') !== '';
+    this.musicData = fetch(base + (opus ? 'intro-mix.webm' : 'intro-mix.m4a')).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+  }
+  private duck(on: boolean) {
+    this.musicActive = on;
+    if (this.ctx && this.droneGain) this.droneGain.gain.setTargetAtTime(on ? 0 : 1, this.ctx.currentTime, on ? 0.08 : 1.2);
+  }
+  /** Play the score from `offset` seconds (sample-accurate). Resolves false if unavailable. */
+  async playMusic(offset: number): Promise<boolean> {
+    this.duck(true);
+    this.ensure();
+    const ctx = this.ctx; if (!ctx || !this.musicData) return false;
+    if (!this.musicBuf) {
+      const data = await this.musicData; if (!data) return false;
+      try { this.musicBuf = await ctx.decodeAudioData(data.slice(0)); } catch { return false; }
+    }
+    if (offset >= this.musicBuf.duration) return false;
+    this.stopMusic(0.03);
+    this.duck(true);
+    await ctx.resume();
+    const src = ctx.createBufferSource(); src.buffer = this.musicBuf;
+    const g = (this.musicGain = ctx.createGain()); g.gain.value = 1;
+    src.connect(g).connect(this.master!);
+    const at = ctx.currentTime + 0.02;
+    src.start(at, Math.max(0, offset));
+    this.musicStart = at - Math.max(0, offset);
+    src.onended = () => { if (this.musicSrc === src) { this.musicSrc = undefined; this.duck(false); } };
+    this.musicSrc = src;
+    return true;
+  }
+  get musicPlaying() { return !!this.musicSrc; }
+  /** Audible position of the score in seconds (accounts for output latency), or -1 if not playing. */
+  musicTime(): number {
+    const ctx = this.ctx; if (!ctx || !this.musicSrc || ctx.state !== 'running') return -1;
+    const ts = (ctx as any).getOutputTimestamp?.();
+    const audible = ts && ts.contextTime > 0 ? ts.contextTime + (performance.now() - ts.performanceTime) / 1000 : ctx.currentTime - (ctx.outputLatency || 0);
+    return audible - this.musicStart;
+  }
+  /** Fade the score out and stop it (used by Skip / Replay). */
+  stopMusic(fade = 0.5) {
+    const src = this.musicSrc, g = this.musicGain, ctx = this.ctx;
+    this.musicSrc = undefined;
+    if (!src || !g || !ctx) { this.duck(false); return; }
+    const t = ctx.currentTime;
+    g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade);
+    try { src.stop(t + fade + 0.02); } catch { /* already stopped */ }
+    this.duck(false);
+  }
 
   private live() { return !this.muted && this.ctx && this.master ? this.ctx : null; }
 
@@ -102,3 +164,4 @@ class SoundEngine {
 }
 
 export const sound = new SoundEngine();
+(window as any).__devaSound = sound; // read-only hook for the e2e suite

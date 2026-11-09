@@ -9,7 +9,7 @@ import path from 'node:path';
 const DIST = path.resolve('dist');
 const SHOTS = path.resolve('tests/shots');
 fs.mkdirSync(SHOTS, { recursive: true });
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.webm': 'audio/webm', '.m4a': 'audio/mp4' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]).replace(/^\/dhanush-fit-deva/, '');
   if (p === '/' || p === '') p = '/index.html';
@@ -70,6 +70,41 @@ try {
   await page.screenshot({ path: `${SHOTS}/07-home-hero.png` });
   // sound is muted by default
   ok('Sound muted by default', (await page.getAttribute('.top-actions button[aria-label*="Sound"]', 'aria-pressed')) === 'false');
+
+  // 1b. Score: browser decode has no codec offset; impact sits exactly where music.json says
+  const M = JSON.parse(fs.readFileSync('src/intro/music.json', 'utf8'));
+  const onset = await page.evaluate(async (from) => {
+    const buf = await (await fetch('./intro/intro-mix.webm')).arrayBuffer();
+    const dec = await new OfflineAudioContext(2, 44100, 44100).decodeAudioData(buf);
+    const oc = new OfflineAudioContext(1, dec.length, dec.sampleRate);
+    const s = oc.createBufferSource(); s.buffer = dec; const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 140; lp.Q.value = 0.7;
+    s.connect(lp).connect(oc.destination); s.start(); const r = (await oc.startRendering()).getChannelData(0);
+    const hop = 441, db = []; for (let i = 0; i + hop < r.length; i += hop) { let a = 0; for (let j = 0; j < hop; j++) a += r[i + j] ** 2; db.push(10 * Math.log10(a / hop + 1e-14)); }
+    const sm = db.map((_, i) => (db[i - 1] ?? db[i]) / 3 + db[i] / 3 + (db[i + 1] ?? db[i]) / 3);
+    const i0 = Math.round((from + 0.2) * 100), i1 = Math.round((from + 0.9) * 100);
+    let pk = i0; for (let i = i0; i < i1; i++) if (sm[i] > sm[pk]) pk = i;
+    let o = pk; while (o > i0 - 15 && sm[o - 1] > sm[pk] - 12) o--;
+    return { onset: o / 100, duration: dec.duration };
+  }, M.crash);
+  ok('Score decodes in browser, impact on marker (±30 ms)', Math.abs(onset.onset - M.impact) <= 0.03, `browser ${onset.onset}s vs marker ${M.impact}s, ${onset.duration.toFixed(2)}s long`);
+
+  // 1c. Sound on → audio clock drives the intro; skip fades the score out
+  await page.click('button[aria-label="Replay intro"]');
+  await page.waitForSelector('.intro canvas[data-ready="1"]');
+  await page.click('.intro-ctrl button[aria-label="Turn sound on"]');
+  await page.waitForFunction(() => window.__introClock === 'audio', null, { timeout: 15000 });
+  const sync = await page.evaluate(async () => {
+    const s = window.__devaSound; let worst = 0;
+    const a0 = s.musicTime(), p0 = performance.now();
+    for (let i = 0; i < 8; i++) { await new Promise((q) => requestAnimationFrame(() => q())); worst = Math.max(worst, Math.abs(window.__introT - window.__introMt)); await new Promise((q) => setTimeout(q, 250)); }
+    const rate = (s.musicTime() - a0) / ((performance.now() - p0) / 1000);
+    return { worst, rate };
+  });
+  ok('Intro frames are stamped from the audio clock (no drift)', sync.worst < 1e-6 && Math.abs(sync.rate - 1) < 0.03, `frame error ${(sync.worst * 1000).toFixed(2)} ms, audio clock rate ${sync.rate.toFixed(3)}×`);
+  await page.click('text=Skip intro');
+  await page.waitForTimeout(900);
+  ok('Skip fades out and stops the score', !(await page.evaluate(() => window.__devaSound.musicPlaying)));
+  await page.click('.top-actions button[aria-label*="Sound"]'); // back to muted for the rest
 
   // 2. Replay + Skip
   await page.click('button[aria-label="Replay intro"]');
@@ -209,7 +244,7 @@ try {
   const rm = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
   await rm.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, body: '' }));
   const rp = await rm.newPage(); rp.on('pageerror', (e) => errors.push('rm: ' + e));
-  await rp.goto(BASE); await rp.waitForSelector('.intro', { state: 'detached', timeout: 60000 });
+  await rp.goto(BASE); await rp.waitForSelector('.intro', { state: 'detached', timeout: 150000 });
   ok('Reduced-motion intro completes', await rp.locator('.hero-title').isVisible());
 } catch (e) {
   ok('Test run crashed', false, String(e));

@@ -50,6 +50,13 @@ npm test           # Playwright end-to-end run against dist/ (fakes Google APIs)
 
 Stack: React 19 + TypeScript, bundled with esbuild, plus a hand-written WebGL2/GLSL engine with no Three.js. Hash routing and relative asset URLs mean it works at any GitHub Pages base path without extra configuration. Deployment runs through `.github/workflows/deploy.yml`: each push to `main` builds and publishes to the `gh-pages` branch.
 
+## Intro score
+`scripts/make_intro_audio.py A.mpeg B.mpeg` builds the soundtrack and the sync map:
+- Clip A (8.2 s) is the opening. FFmpeg analysis showed that from 4.8 s on it is the same recording as clip B, offset by 2.745 s (waveform correlation 0.976). So the mix continues A into B **sample-aligned** at the same 130.9 BPM groove. B is gain- and EQ-matched to A (−3.1 dB, ±3 dB corrective EQ), with a 120 ms equal-power crossfade in the gap before A's last kick. B then runs to the next phrase downbeat and fades over two bars.
+- The master is normalised to −13.6 LUFS with a −1.7 dBFS peak and no clipping. Outputs: `audio-master/intro-mix.wav` (24-bit master), `public/intro/intro-mix.webm` (Opus) and `.m4a` (AAC, for Safari).
+- `src/intro/music.json` holds the detected hits: build 1.79 s · ring 2.71 · sweep 3.22 · swell 3.60 · crash 4.51 · **impact 4.98** · kicks · reveal 7.27 · fly 9.57 · land 12.31. Every animation event is keyed to these times.
+- When sound is on, each frame takes its time from the WebAudio playback clock (output-latency compensated), so the animation can't drift from the music. Sound starts muted. Turning it on mid-intro starts the score at the current position, and Skip fades it out over 0.6 s.
+
 ## Logo
 The official DHANUSH → DEVA poster is the master brand asset. `scripts/make_intro_assets.py <poster.png>` produces everything in `public/intro/`: `poster.webp`, `plate.webp`, `mask.png` (layer mattes), `emblem.webp` (the D emblem with transparency, shown in the hero), `mark-96.webp` (nav logo) and `public/logo/favicon-192.png`. Re-run it if the poster changes.
 
