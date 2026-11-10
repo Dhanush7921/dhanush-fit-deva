@@ -3,6 +3,7 @@ import type { State, Settings, Meal, DailyLog, WorkoutItem, Weight, Table, Prefs
 
 declare const __GOOGLE_CLIENT_ID__: string;
 declare const __ALLOWED_EMAIL__: string;
+declare const __SHEET_ID__: string;
 
 const KEY = 'deva.state.v1';
 const PREFS = 'deva.prefs.v1';
@@ -113,10 +114,41 @@ export function importBackup(json: string) {
   });
 }
 
+const TABLE_LIST: Table[] = ['meals', 'logs', 'workouts', 'weights'];
+/** Merge records carried over from another device/origin. Newest edit wins per id, so repeating it never duplicates. */
+export function mergeTransfer(d: Partial<State>): number {
+  if (!d || d.v !== 1) throw new Error('Not DEVA data');
+  let n = 0;
+  setState((s) => {
+    const out: State = { ...s, dirty: { ...s.dirty } };
+    for (const t of TABLE_LIST) {
+      const src = (d[t] ?? {}) as Record<string, any>;
+      const cur = { ...(s[t] as Record<string, any>) };
+      let dirty = s.dirty[t];
+      for (const [id, rec] of Object.entries(src)) {
+        if (!rec || typeof rec !== 'object' || rec.id !== id) continue;
+        if (cur[id] && cur[id].updatedAt >= (Number(rec.updatedAt) || 0)) continue;
+        cur[id] = rec; n++;
+        if (!dirty.includes(id)) dirty = [...dirty, id];
+      }
+      (out as any)[t] = cur; out.dirty[t] = dirty;
+    }
+    if (d.settings && (Number(d.settings.updatedAt) || 0) > s.settings.updatedAt) { out.settings = { ...s.settings, ...d.settings }; out.dirty.settings = true; n++; }
+    return out;
+  });
+  return n;
+}
+/** Queue every local record for upload (used when the target spreadsheet changes). */
+export function markAllDirty() {
+  setState((s) => ({ ...s, dirty: { meals: Object.keys(s.meals), logs: Object.keys(s.logs), workouts: Object.keys(s.workouts), weights: Object.keys(s.weights), settings: s.settings.updatedAt > 0 } }), false);
+}
+
 // ---- local-only preferences (never synced) ----------------------------------
-const defPrefs: Prefs = { clientId: __GOOGLE_CLIENT_ID__, allowedEmail: __ALLOWED_EMAIL__, playIntro: true, autoSync: true };
+const defPrefs: Prefs = { clientId: __GOOGLE_CLIENT_ID__, sheetId: __SHEET_ID__, allowedEmail: __ALLOWED_EMAIL__, playIntro: true, autoSync: true };
 let prefs: Prefs = (() => { try { return { ...defPrefs, ...JSON.parse(localStorage.getItem(PREFS) || '{}') }; } catch { return defPrefs; } })();
 if (!prefs.clientId) prefs.clientId = defPrefs.clientId;
+if (!prefs.sheetId) prefs.sheetId = defPrefs.sheetId;
+if (!prefs.allowedEmail) prefs.allowedEmail = defPrefs.allowedEmail;
 const psubs = new Set<() => void>();
 export const getPrefs = () => prefs;
 export function setPrefs(p: Partial<Prefs>) { prefs = { ...prefs, ...p }; try { localStorage.setItem(PREFS, JSON.stringify(prefs)); } catch { /* ignore */ } psubs.forEach((f) => f()); }

@@ -2,7 +2,7 @@
 // The access token lives in memory only — never in localStorage, never in the repo.
 declare const google: any;
 
-export const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email openid';
+export const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email openid';
 
 export class AuthError extends Error { constructor(m = 'Google session expired — reconnect') { super(m); } }
 
@@ -34,8 +34,8 @@ export async function requestToken(clientId: string, hint?: string, prompt: '' |
       hint,
       callback: (r: any) => {
         if (r.error) return rej(new Error(r.error_description || r.error));
-        if (!google.accounts.oauth2.hasGrantedAllScopes(r, 'https://www.googleapis.com/auth/drive.file'))
-          return rej(new Error('Drive file permission was not granted.'));
+        if (!google.accounts.oauth2.hasGrantedAllScopes(r, 'https://www.googleapis.com/auth/spreadsheets'))
+          return rej(new Error('Google Sheets permission was not granted.'));
         token = { value: r.access_token, exp: Date.now() + (Number(r.expires_in) - 60) * 1000 };
         res(r.access_token);
       },

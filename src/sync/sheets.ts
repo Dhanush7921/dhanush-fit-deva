@@ -4,7 +4,7 @@
 // - Duplicate rows (e.g. from two devices racing) are collapsed, keeping the newest.
 // - Offline: edits stay in localStorage (the outbox) and sync when back online.
 import { useSyncExternalStore } from 'react';
-import { getState, setState, getPrefs, onLocalChange } from '../store/store';
+import { getState, setState, getPrefs, onLocalChange, markAllDirty } from '../store/store';
 import type { State, Table, Settings } from '../store/types';
 import { gapi, requestToken, hasToken, signOut, AuthError } from './google';
 
@@ -65,22 +65,33 @@ export async function connect(selectAccount = false) {
 }
 export function disconnect() { signOut(); setStatus({ state: 'local', msg: 'Disconnected — saving on this device' }); }
 
+const REQUIRED = [...ORDER.map((t) => TABLES[t].sheet), SETTINGS_SHEET];
+export const parseSheetId = (v: string) => (v.match(/\/d\/([\w-]{20,})/)?.[1] ?? (/^[\w-]{20,}$/.test(v.trim()) ? v.trim() : ''));
+
+/** Adds any of the five required tabs that the spreadsheet does not have yet. Existing tabs are never touched. */
+async function ensureTabs(id: string) {
+  const meta = await gapi<{ sheets?: { properties: { title: string } }[] }>(`${SHEETS}/${id}?fields=sheets.properties.title`);
+  const have = new Set((meta.sheets ?? []).map((x) => x.properties.title));
+  const missing = REQUIRED.filter((t) => !have.has(t));
+  if (missing.length)
+    await gapi(`${SHEETS}/${id}:batchUpdate`, { method: 'POST', body: JSON.stringify({ requests: missing.map((title) => ({ addSheet: { properties: { title, gridProperties: { frozenRowCount: 1 } } } })) }) });
+}
+
 async function ensureSpreadsheet() {
-  const known = getState().sync.spreadsheetId;
-  if (known) {
-    try { await gapi(`${SHEETS}/${known}?fields=spreadsheetId`); return known; } catch (e) { if (e instanceof AuthError) throw e; }
-  }
-  // drive.file scope: only files this app created are visible, so this search can only ever find our own sheet.
-  const q = encodeURIComponent(`name='${TITLE.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`);
-  const found = await gapi<{ files: { id: string }[] }>(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime&fields=files(id)&spaces=drive`);
-  let id = found.files?.[0]?.id;
-  if (!id) {
-    const sheets = [...ORDER.map((t) => TABLES[t].sheet), SETTINGS_SHEET].map((title) => ({ properties: { title, gridProperties: { frozenRowCount: 1 } } }));
+  const prev = getState().sync.spreadsheetId;
+  let id = parseSheetId(getPrefs().sheetId) || prev;
+  if (id) {
+    try { await ensureTabs(id); }
+    catch (e: any) {
+      if (e instanceof AuthError) throw e;
+      throw new Error(`Could not open the spreadsheet with ${getState().sync.email || 'this account'} — it must own or be able to edit it. (${e.message})`);
+    }
+  } else {
+    const sheets = REQUIRED.map((title) => ({ properties: { title, gridProperties: { frozenRowCount: 1 } } }));
     const created = await gapi<{ spreadsheetId: string }>(SHEETS, { method: 'POST', body: JSON.stringify({ properties: { title: TITLE }, sheets }) });
     id = created.spreadsheetId;
-    const data = [...ORDER.map((t) => ({ range: `${TABLES[t].sheet}!A1`, values: [TABLES[t].cols.map((c) => c.k)] })), { range: `${SETTINGS_SHEET}!A1`, values: [['key', 'value', 'updatedAt']] }];
-    await gapi(`${SHEETS}/${id}/values:batchUpdate`, { method: 'POST', body: JSON.stringify({ valueInputOption: 'RAW', data }) });
   }
+  if (prev && prev !== id) markAllDirty(); // different spreadsheet: everything on this device must be uploaded to it
   setState((s) => ({ ...s, sync: { ...s.sync, spreadsheetId: id } }), false);
   return id;
 }
@@ -169,6 +180,7 @@ async function doSync() {
       clears.push(`${SETTINGS_SHEET}!A2:C`);
       updates.push({ range: `${SETTINGS_SHEET}!A1`, values: [['key', 'value', 'updatedAt'], ...entries.map(([k, v]) => [k, JSON.stringify(v), snap.settings.updatedAt])] });
     }
+    if (!srows.length && !pushSettings) updates.push({ range: `${SETTINGS_SHEET}!A1`, values: [['key', 'value', 'updatedAt']] });
     const pullSettings = !!remoteSettings && remoteAt > snap.settings.updatedAt && !pushSettings;
 
     if (clears.length) await gapi(`${SHEETS}/${id}/values:batchClear`, { method: 'POST', body: JSON.stringify({ ranges: clears }) });
@@ -214,4 +226,9 @@ export function scheduleSync(delay = 2500) {
 onLocalChange(() => scheduleSync());
 addEventListener('online', () => scheduleSync(500));
 addEventListener('offline', () => setStatus({ state: 'offline', msg: 'Offline — changes saved on this device' }));
+// Re-check the cloud whenever the tab is looked at again, and once a minute while it stays open.
+const wake = () => { if (document.visibilityState === 'visible' && hasToken()) scheduleSync(400); };
+addEventListener('focus', wake);
+document.addEventListener('visibilitychange', wake);
+setInterval(() => { if (document.visibilityState === 'visible' && navigator.onLine && hasToken()) scheduleSync(0); }, 60000);
 export const pendingCount = (s: State) => ORDER.reduce((n, t) => n + s.dirty[t].length, 0) + (s.dirty.settings ? 1 : 0);

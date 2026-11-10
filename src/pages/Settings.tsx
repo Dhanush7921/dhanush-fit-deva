@@ -22,6 +22,7 @@ export default function Settings() {
   const [splitTxt, setSplitTxt] = useState(() => Object.fromEntries(Object.entries(s.settings.split).map(([k, v]) => [k, v.exercises.join('\n')])));
   const [cid, setCid] = useState(prefs.clientId);
   const [email, setEmail] = useState(prefs.allowedEmail);
+  const [sheet, setSheet] = useState(prefs.sheetId);
   const [busy, setBusy] = useState(false);
   const [armReset, setArmReset] = useState(false);
   const url = sheetUrl();
@@ -55,11 +56,12 @@ export default function Settings() {
           <div className="sync-grid">
             <label className="field wide"><span>OAuth Client ID (public — not a secret)</span><input value={cid} onChange={(e) => setCid(e.target.value.trim())} placeholder="1234-abc.apps.googleusercontent.com" spellCheck={false} /></label>
             <label className="field wide"><span>Authorised Google account</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value.trim())} placeholder="you@gmail.com" /></label>
+            <label className="field wide"><span>Spreadsheet link or ID (leave empty to create a new one)</span><input value={sheet} onChange={(e) => setSheet(e.target.value.trim())} placeholder="https://docs.google.com/spreadsheets/d/…" spellCheck={false} /></label>
           </div>
           <div className="form-actions">
-            <button className="btn ghost" onClick={() => { setPrefs({ clientId: cid, allowedEmail: email }); toast('Saved on this device'); }}>Save</button>
+            <button className="btn ghost" onClick={() => { setPrefs({ clientId: cid, allowedEmail: email, sheetId: sheet }); toast('Saved on this device'); }}>Save</button>
             {!isConnected() ? (
-              <button className="btn primary" disabled={busy || !cid} onClick={() => { setPrefs({ clientId: cid, allowedEmail: email }); run(() => connect(), 'Connected to Google Sheets'); }}>{s.sync.spreadsheetId ? 'Reconnect Google' : 'Connect Google'}</button>
+              <button className="btn primary" disabled={busy || !cid} onClick={() => { setPrefs({ clientId: cid, allowedEmail: email, sheetId: sheet }); run(() => connect(), 'Connected to Google Sheets'); }}>{s.sync.spreadsheetId ? 'Reconnect Google' : 'Connect Google'}</button>
             ) : (
               <>
                 <button className="btn primary" disabled={busy} onClick={() => run(syncNow, 'Synced')}>Sync now</button>
@@ -69,7 +71,7 @@ export default function Settings() {
             {url && <a className="btn ghost" href={url} target="_blank" rel="noopener noreferrer">Open spreadsheet ↗</a>}
           </div>
           <Check checked={prefs.autoSync} onChange={(v) => setPrefs({ autoSync: v })} label="Sync automatically after each change" />
-          <p className="fineprint">The app creates one private spreadsheet in your own Drive (tabs: DailyLogs, Meals, Workouts, WeightProgress, Settings) and uses the narrow <code>drive.file</code> scope — it can only see files it created. Access tokens stay in memory; nothing secret is stored here or in the code. Everything also saves on this device, so it works offline and syncs when you're back.</p>
+          <p className="fineprint">Your data lives in one Google spreadsheet in your own Drive (tabs: DailyLogs, Meals, Workouts, WeightProgress, Settings). Sign in with the same Google account on any laptop, PC or phone and everything you saved appears there. The app asks only for Google Sheets access and your email; access tokens stay in memory, and nothing secret is stored here or in the code. Entries also save on this device first, so it works offline and uploads when you're back. Keep the spreadsheet's sharing set to <strong>Restricted</strong> so only you can open it.</p>
         </Panel>
 
         <Panel kicker="Targets" title="Daily targets" className="wide">

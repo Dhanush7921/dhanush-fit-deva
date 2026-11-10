@@ -29,4 +29,4 @@ export interface State {
   dirty: Record<Table, string[]> & { settings: boolean };
   sync: { spreadsheetId?: string; lastSync?: number; email?: string };
 }
-export interface Prefs { clientId: string; allowedEmail: string; playIntro: boolean; autoSync: boolean }
+export interface Prefs { clientId: string; sheetId: string; allowedEmail: string; playIntro: boolean; autoSync: boolean }

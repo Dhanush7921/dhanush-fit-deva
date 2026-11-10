@@ -8,6 +8,8 @@ import { getEngine } from './engine/Engine';
 import { pageController } from './engine/shots';
 import { getPrefs } from './store/store';
 import PerfHud from './components/PerfHud';
+import Moved from './components/Moved';
+import { toast } from './components/ui';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Fuel = lazy(() => import('./pages/Fuel'));
@@ -42,6 +44,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    let note: string | null = null;
+    try { note = sessionStorage.getItem('deva.imported'); sessionStorage.removeItem('deva.imported'); } catch { /* ignore */ }
+    if (note === 'err') toast('That data link could not be read', 'err');
+    else if (note !== null) toast(Number(note) ? `${note} entries carried over — connect Google to save them to your Sheet` : 'Everything was already here');
+  }, []);
+
   const Page = route === 'home' ? null : PAGES[route];
   return (
     <>
@@ -55,6 +64,7 @@ export default function App() {
         </main>
         <Toasts />
       </div>
+      <Moved />
       <PerfHud />
     </>
   );

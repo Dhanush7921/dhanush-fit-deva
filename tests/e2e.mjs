@@ -6,19 +6,19 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DIST = path.resolve('dist');
+const DIST = path.resolve(process.env.DIST || 'dist');
 const SHOTS = path.resolve('tests/shots');
 fs.mkdirSync(SHOTS, { recursive: true });
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.webm': 'audio/webm', '.m4a': 'audio/mp4' };
 const server = http.createServer((req, res) => {
-  let p = decodeURIComponent(req.url.split('?')[0]).replace(/^\/dhanush-fit-deva/, '');
+  let p = decodeURIComponent(req.url.split('?')[0]).replace(/^\/deva/, '');
   if (p === '/' || p === '') p = '/index.html';
   const f = path.join(DIST, p);
   if (!f.startsWith(DIST) || !fs.existsSync(f)) { res.writeHead(404); return res.end('nf'); }
   res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' });
   fs.createReadStream(f).pipe(res);
 }).listen(4173);
-const BASE = 'http://localhost:4173/dhanush-fit-deva/';
+const BASE = 'http://localhost:4173/deva/';
 
 // ---------- fake Google ----------
 const sheets = {}; let created = 0;
@@ -31,10 +31,11 @@ async function fakeGoogle(route) {
   if (url.pathname === '/oauth2/v3/userinfo') return json({ email: 'deva@example.com', email_verified: true });
   if (url.pathname === '/drive/v3/files') return json({ files: created ? [{ id: 'sheet1' }] : [] });
   if (url.pathname === '/v4/spreadsheets' && req.method() === 'POST') { created++; for (const s of body.sheets) sheets[s.properties.title] = []; return json({ spreadsheetId: 'sheet1' }); }
-  const m = url.pathname.match(/^\/v4\/spreadsheets\/sheet1(.*)$/);
+  const m = url.pathname.match(/^\/v4\/spreadsheets\/[\w-]+(.*)$/);
   if (m) {
     const rest = decodeURIComponent(m[1]);
-    if (rest === '') return json({ spreadsheetId: 'sheet1' });
+    if (rest === '') return json({ spreadsheetId: 'sheet1', sheets: Object.keys(sheets).map((title) => ({ properties: { title } })) });
+    if (rest === ':batchUpdate') { for (const r of body.requests) if (r.addSheet) sheets[r.addSheet.properties.title] ||= []; return json({}); }
     if (rest === '/values:batchGet') return json({ valueRanges: url.searchParams.getAll('ranges').map((r) => ({ range: r, values: (sheets[rowsOf(r).name] || []).map((x) => x || []) })) });
     if (rest === '/values:batchUpdate') { for (const d of body.data) { const { name, row } = rowsOf(d.range); const s = (sheets[name] ||= []); d.values.forEach((v, i) => { s[row - 1 + i] = v; }); } return json({}); }
     if (rest === '/values:batchClear') { for (const r of body.ranges) { const { name, row } = rowsOf(r); const s = sheets[name] || []; if (/!A\d+:[A-Z]$/.test(r)) s.length = Math.min(s.length, row - 1); else s[row - 1] = []; } return json({}); }
@@ -47,7 +48,7 @@ async function fakeGoogle(route) {
 // ---------- runner ----------
 const results = []; const errors = [];
 const ok = (name, cond, extra = '') => { results.push({ name, pass: !!cond, extra }); console.log(`${cond ? '✓' : '✗'} ${name}${extra ? ' — ' + extra : ''}`); };
-const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}), args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 await ctx.route(/accounts\.google\.com|googleapis\.com/, fakeGoogle);
 await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, body: '' }));
@@ -210,7 +211,7 @@ try {
   // second device edits a meal + a duplicate row appears
   const mealRow = sheets.Meals[1].slice(); mealRow[4] = 'Chicken (edited on phone)'; mealRow[11] = Date.now() + 60000;
   sheets.Meals[1] = mealRow; sheets.Meals.push(sheets.Meals[2].slice());
-  await page.click('button:has-text("Sync now")'); await page.waitForTimeout(3000);
+  await page.click('button:has-text("Sync now")'); await page.waitForTimeout(8000);
   ok('Duplicate row collapsed', live() === base, `${live()}`);
   await page.goto(BASE + '?nointro#/fuel'); await page.waitForSelector('.food-form');
   ok('Remote newer edit pulled into app', await page.locator('td:has-text("edited on phone")').count() === 1);

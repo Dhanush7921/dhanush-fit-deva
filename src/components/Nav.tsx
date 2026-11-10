@@ -35,6 +35,7 @@ export default function Nav({ route, onReplay }: { route: Route; onReplay: () =>
           <button className={`sync-pill s-${st.state}`} onClick={() => navigate('settings')} title={st.msg} aria-label={`Sync status: ${st.msg}`}>
             <span className="dot" /><span className="sync-txt">{label(st.state)}</span>
           </button>
+          <a className="icon-btn portfolio-link" href={location.hostname.endsWith('github.io') ? 'https://kalladhanush.in/' : '../'} aria-label="Back to Kalla Dhanush portfolio" title="kalladhanush.in"><Icon.left /></a>
           <button className="icon-btn" onClick={onReplay} aria-label="Replay intro" title="Replay intro"><Icon.replay /></button>
           <button className="icon-btn" onClick={sound.toggle} aria-pressed={!muted} aria-label={muted ? 'Sound off — turn on' : 'Sound on — turn off'} title="Sound"><SoundIcon on={!muted} /></button>
           <a href="#/settings" onClick={go('settings')} className={`icon-btn ${route === 'settings' ? 'active' : ''}`} aria-label="Settings" title="Settings"><Icon.gear /></a>

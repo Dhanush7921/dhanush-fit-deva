@@ -2,7 +2,7 @@
 
 A cinematic 3D personal fitness tracker. A raymarched WebGL2 world (an industrial quarry in backlit haze, with smoke, god rays, embers and a metallic 3D bow-"D" emblem) runs behind a 42-day transformation dashboard. Your data lives in **your own private Google Sheet**: there is no backend and no database.
 
-**Live:** https://dhanush7921.github.io/dhanush-fit-deva/
+**Live:** https://kalladhanush.in/deva/ (built and deployed by the portfolio repo's Pages workflow)
 
 ## What's inside
 
@@ -19,22 +19,24 @@ Defaults: 95 kg start · 9 Nov – 20 Dec 2026 · 1,500–1,600 kcal · 173 g pr
 ## Connect Google Sheets (one-time, ~5 minutes)
 
 1. Go to https://console.cloud.google.com/ and create a project (for example `deva-fitness`).
-2. Open **APIs & Services → Library** and enable the **Google Sheets API** and the **Google Drive API**.
+2. Open **APIs & Services → Library** and enable the **Google Sheets API**.
 3. Open **APIs & Services → OAuth consent screen** (Google Auth Platform → Branding / Audience):
    - User type **External**. Fill in the app name and your email.
    - Leave publishing status on **Testing**, and under **Test users** add **only your Gmail address**. Google will then refuse sign-in from every other account.
 4. Open **APIs & Services → Credentials → Create credentials → OAuth client ID**:
    - Application type: **Web application**
-   - Authorized JavaScript origins: `https://dhanush7921.github.io` (add `http://localhost:5173` for local dev)
+   - Authorized JavaScript origins: `https://kalladhanush.in` (add `https://dhanush7921.github.io` for the old address and `http://localhost:5173` for local dev)
    - You don't need a redirect URI or a client secret, because the app uses the browser token flow.
 5. Copy the **Client ID** (`…apps.googleusercontent.com`). Then either:
    - paste it into **Settings → Cloud sync** on the site, together with your Gmail address as the authorised account, or
    - make it the default for every device: go to GitHub repo **Settings → Secrets and variables → Actions → Variables**, add `GOOGLE_CLIENT_ID` (and optionally `ALLOWED_EMAIL`), and re-run the deploy workflow.
-6. Press **Connect Google**. On first connect the app creates a private spreadsheet called *DHANUSH → DEVA · Transformation Log* in your Drive.
+6. Press **Connect Google**. The app opens the spreadsheet set in Settings (default: the owner's *TRACKING SHEET*), adds any missing tabs, uploads what is saved on the device and downloads everything else. With the field empty it creates a new private spreadsheet instead.
 
 ### Security model
-- Only the scopes `drive.file` + `userinfo.email` are requested. With `drive.file` the app can only see files it created, so it cannot read the rest of your Drive.
-- The spreadsheet lives in your own Drive and is private to you.
+- Only the scopes `spreadsheets` + `userinfo.email` are requested (the Sheets scope is what lets the app open a spreadsheet you already own). No Drive, Gmail or other access.
+- Sync runs after each change, when the tab regains focus, once a minute while open, and on reconnect. Records are matched by id and the newest edit wins.
+- Entries saved in a browser at the old github.io address are carried over with the **Carry my data over** button shown there (browser storage is per-address, so this has to be done once per device).
+- The spreadsheet lives in your own Drive. Keep its sharing on **Restricted**.
 - Sign-in is limited three ways: the consent screen is in Testing mode, you are the only test user, and the app's own allowed-account check signs out any other email.
 - The OAuth Client ID is public by design. No client secret, private key or token is in the repo. The access token is kept in memory only.
 - A strict Content-Security-Policy allows only this site, Google sign-in and the Google APIs.

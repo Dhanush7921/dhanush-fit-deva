@@ -1,5 +1,5 @@
 // Build: esbuild bundles React + the custom WebGL engine into hashed, code-split ESM assets.
-// Relative asset URLs + hash routing => works at any GitHub Pages base path (/dhanush-fit-deva/).
+// Relative asset URLs + hash routing => works at any base path (kalladhanush.in/deva/), including refresh and deep links.
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,6 +29,7 @@ const options = {
     'process.env.NODE_ENV': serve ? '"development"' : '"production"',
     __GOOGLE_CLIENT_ID__: JSON.stringify(process.env.GOOGLE_CLIENT_ID || ''),
     __ALLOWED_EMAIL__: JSON.stringify(process.env.ALLOWED_EMAIL || ''),
+    __SHEET_ID__: JSON.stringify(process.env.SHEET_ID ?? '1edpIh8QLm02xc4EhahJ0YgsuI_R7NjqQBkNyU-BSK7U'),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
 };
